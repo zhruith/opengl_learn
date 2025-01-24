@@ -1,0 +1,24 @@
+{
+    "files.associations": {
+        "algorithm": "cpp",
+        "cmath": "cpp",
+        "new": "cpp",
+        "atomic": "cpp",
+        "charconv": "cpp",
+        "compare": "cpp",
+        "format": "cpp",
+        "istream": "cpp",
+        "memory": "cpp",
+        "mutex": "cpp",
+        "ostream": "cpp",
+        "system_error": "cpp",
+        "type_traits": "cpp",
+        "xfacet": "cpp",
+        "xlocale": "cpp",
+        "xmemory": "cpp",
+        "xstring": "cpp",
+        "xutility": "cpp",
+        "*.rh": "cpp",
+        "iostream": "cpp"
+    }
+}

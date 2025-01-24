@@ -1,0 +1,6 @@
+CompileFlags:
+  Add:
+    - -std=c++17
+    - -I${workspaceFolder}
+    - -IU:/scoop/apps/vcpkg/current/installed/x64-windows/include/
+
