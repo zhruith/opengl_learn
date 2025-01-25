@@ -16,7 +16,7 @@ enum Camera_Movement { FORWARD, BACKWARD, LEFT, RIGHT, UP, DOWN };
 const float YAW = -90.0f;
 const float PITCH = 0.0f;
 const float SPEED = 2.5f;
-const float SENSITIVITY = 0.1f;
+const float SENSITIVITY = 0.5f;
 const float ZOOM = 45.0f;
 
 // An abstract camera class that processes input and calculates the
@@ -29,6 +29,7 @@ public:
   glm::vec3 Up;
   glm::vec3 Right;
   glm::vec3 WorldUp;
+  glm::vec3 FocusPoint;
   // euler Angles
   float Yaw;
   float Pitch;
@@ -36,6 +37,7 @@ public:
   float MovementSpeed;
   float MouseSensitivity;
   float Zoom;
+  float ViewDistance;
 
   // constructor with vectors
   Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f),
@@ -46,6 +48,8 @@ public:
     WorldUp = up;
     Yaw = yaw;
     Pitch = pitch;
+    ViewDistance = glm::length(Position);
+    FocusPoint = glm::vec3(0.0f, 0.0f, 0.0f);
     updateCameraVectors();
   }
   // constructor with scalar values
@@ -57,6 +61,8 @@ public:
     WorldUp = glm::vec3(upX, upY, upZ);
     Yaw = yaw;
     Pitch = pitch;
+    ViewDistance = glm::length(Position);
+    FocusPoint = glm::vec3(0.0f, 0.0f, 0.0f);
     updateCameraVectors();
   }
 
@@ -68,28 +74,33 @@ public:
   // systems)
   void ProcessKeyboard(Camera_Movement direction, float deltaTime) {
     float velocity = MovementSpeed * deltaTime;
-    if (direction == FORWARD)
-      Position += Front * velocity;
-    if (direction == BACKWARD)
-      Position -= Front * velocity;
+    glm::vec3 delta = glm::vec3(0.0f, 0.0f, 0.0f);
+    if (direction == FORWARD) {
+      delta += Front * velocity;
+      ViewDistance -= glm::length(delta);
+    }
+    if (direction == BACKWARD) {
+      delta -= Front * velocity;
+      ViewDistance += glm::length(delta);
+    }
     if (direction == LEFT)
-      Position -= Right * velocity;
+      delta -= Right * velocity;
     if (direction == RIGHT)
-      Position += Right * velocity;
+      delta += Right * velocity;
     if (direction == UP)
-      Position += Up * velocity;
+      delta += Up * velocity;
     if (direction == DOWN)
-      Position -= Up * velocity;
+      delta -= Up * velocity;
+
+    Position += delta;
+    FocusPoint += delta;
   }
 
   // processes input received from a mouse input system. Expects the offset
   // value in both the x and y direction.
   void ProcessMouseMovement(float xoffset, float yoffset, GLboolean constrainPitch = true) {
-    xoffset *= MouseSensitivity;
-    yoffset *= MouseSensitivity;
-
-    Yaw += xoffset;
-    Pitch += yoffset;
+    Yaw += xoffset * MouseSensitivity;
+    Pitch += yoffset * MouseSensitivity;
 
     // make sure that when pitch is out of bounds, screen doesn't get flipped
     if (constrainPitch) {
@@ -98,39 +109,36 @@ public:
       if (Pitch < -89.0f)
         Pitch = -89.0f;
     }
+    FocusPoint = Position + Front * ViewDistance;
     // update Front, Right and Up Vectors using the updated Euler angles
     updateCameraVectors();
   };
 
-  void ProcessMouseRotate(float xoffset, float yoffset, GLboolean constrainPitch = true) {
-    Yaw += xoffset;
-    Pitch += yoffset;
+  void ProcessMousePan(float xoffset, float yoffset) {
+    glm::vec3 delta = glm::vec3(0.0f, 0.0f, 0.0f);
+    delta += -Right * xoffset * (ViewDistance / 1000);
+    delta += -Up * yoffset * (ViewDistance / 1000);
+    Position += delta;
+    FocusPoint += delta;
+  }
 
-    // make sure that when pitch is out of bounds, screen doesn't get flipped
-    if (constrainPitch) {
-      if (Pitch > 89.0f)
-        Pitch = 89.0f;
-      if (Pitch < -89.0f)
-        Pitch = -89.0f;
-    }
+  void resetFocusPoint() {
+    FocusPoint = glm::vec3(0.0f, 0.0f, 0.0f);
+    Position = FocusPoint - Front * ViewDistance;
+  }
 
-    float radius = glm::length(Position);
-    float camX = radius * cos(glm::radians(Pitch)) * cos(glm::radians(Yaw));
-    float camY = radius * sin(glm::radians(Pitch));
-    float camZ = radius * cos(glm::radians(Pitch)) * sin(glm::radians(Yaw));
-    Position = glm::vec3(camX, camY, camZ);
+  void ProcessMouseRotate(float xoffset, float yoffset) {
+    ProcessMouseMovement(xoffset, yoffset);
+    Position = FocusPoint - Front * ViewDistance;
   }
 
   // processes input received from a mouse scroll-wheel event. Only requires
   // input on the vertical wheel-axis
   void ProcessMouseScroll(float yoffset) {
-    Position += Front * yoffset;
-    // Zoom -= (float)yoffset;
-    // if (Zoom < 1.0f)
-    //   Zoom = 1.0f;
-    // if (Zoom > 45.0f)
-    //   Zoom = 45.0f;
-    updateCameraVectors();
+    ViewDistance -= yoffset;
+    if (ViewDistance < 1.0f)
+      ViewDistance = 0.1f;
+    Position = FocusPoint - Front * ViewDistance;
   }
 
 private:

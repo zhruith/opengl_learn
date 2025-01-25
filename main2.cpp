@@ -25,6 +25,7 @@ float lastY = SCR_HEIGHT / 2.0f;
 
 bool firstMouse = true;
 bool middleMousePressed = false;
+bool leftShiftPressed = false;
 bool cursor_mode = false;
 
 // timing
@@ -213,7 +214,7 @@ int main() {
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
     {
-      ImGui::Begin("test");
+      ImGui::Begin("Control Panel");
       ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
       ImGui::Checkbox("Cursor Mode", &cursor_mode);
       ImGui::ColorEdit3("clear color", (float *)&clear_color);
@@ -255,28 +256,37 @@ void processInput(GLFWwindow *window) {
       glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
     glfwSetWindowShouldClose(window, true);
 
-  if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS &&
-      glfwGetKey(window, GLFW_KEY_GRAVE_ACCENT) == GLFW_PRESS)
-    cursor_mode = true;
-  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+  if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS && cursor_mode) {
     cursor_mode = false;
     firstMouse = true;
   }
 
-  if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-    deltaTime *= 5;
-  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-    camera.ProcessKeyboard(FORWARD, deltaTime);
-  if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-    camera.ProcessKeyboard(BACKWARD, deltaTime);
-  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-    camera.ProcessKeyboard(LEFT, deltaTime);
-  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-    camera.ProcessKeyboard(RIGHT, deltaTime);
-  if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-    camera.ProcessKeyboard(DOWN, deltaTime);
-  if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-    camera.ProcessKeyboard(UP, deltaTime);
+  if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+    leftShiftPressed = true;
+    if (glfwGetKey(window, GLFW_KEY_GRAVE_ACCENT) == GLFW_PRESS)
+      cursor_mode = true;
+    if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS)
+      camera.resetFocusPoint();
+  } else if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_RELEASE) {
+    leftShiftPressed = false;
+  }
+
+  if (cursor_mode) {
+    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
+      deltaTime *= 5;
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+      camera.ProcessKeyboard(FORWARD, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+      camera.ProcessKeyboard(BACKWARD, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+      camera.ProcessKeyboard(LEFT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+      camera.ProcessKeyboard(RIGHT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+      camera.ProcessKeyboard(DOWN, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+      camera.ProcessKeyboard(UP, deltaTime);
+  }
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback
@@ -306,7 +316,10 @@ void mouse_callback(GLFWwindow *window, double xposIn, double yposIn) {
   if (cursor_mode) {
     camera.ProcessMouseMovement(xoffset, yoffset);
   } else if (middleMousePressed) {
-    camera.ProcessMouseRotate(xoffset, yoffset);
+    if (leftShiftPressed)
+      camera.ProcessMousePan(xoffset, yoffset);
+    else
+      camera.ProcessMouseRotate(xoffset, yoffset);
   }
 }
 
@@ -331,6 +344,7 @@ void mouse_button_callback(GLFWwindow *window, int button, int action, int mods)
   } else if (action == GLFW_RELEASE) {
     if (button == GLFW_MOUSE_BUTTON_MIDDLE && !cursor_mode) {
       middleMousePressed = false;
+      firstMouse = true;
     }
   }
 }
