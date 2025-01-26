@@ -77,11 +77,11 @@ public:
     glm::vec3 delta = glm::vec3(0.0f, 0.0f, 0.0f);
     if (direction == FORWARD) {
       delta += Front * velocity;
-      ViewDistance -= glm::length(delta);
+      ViewDistance -= velocity;
     }
     if (direction == BACKWARD) {
       delta -= Front * velocity;
-      ViewDistance += glm::length(delta);
+      ViewDistance += velocity;
     }
     if (direction == LEFT)
       delta -= Right * velocity;
